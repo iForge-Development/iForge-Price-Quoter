@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import JSZip from 'jszip';
 
 interface ModelViewerProps {
   file: File;
@@ -31,10 +32,8 @@ export default function ModelViewer({ file }: ModelViewerProps) {
           const text = new TextDecoder().decode(buffer);
           loadedGeometry = parseOBJ(text);
         } else if (fileExtension === '3mf') {
-          // For 3MF files, create a placeholder for now
-          // 3MF is a complex ZIP format that requires specialized parsing
-          // This creates a recognizable placeholder that can be replaced with proper 3MF parsing
-          loadedGeometry = parse3MF(buffer);
+          // Parse 3MF files (ZIP archives containing XML model data)
+          loadedGeometry = await parse3MF(buffer);
         } else {
           // For other formats, create a placeholder geometry
           loadedGeometry = new THREE.BoxGeometry(20, 20, 20);
@@ -167,13 +166,64 @@ export default function ModelViewer({ file }: ModelViewerProps) {
     return geometry;
   };
 
-  // Simple 3MF parser (placeholder implementation)
-  const parse3MF = (buffer: ArrayBuffer): THREE.BufferGeometry => {
-    // 3MF files are ZIP archives containing XML files
-    // This is a placeholder implementation - in production, use a proper 3MF loader
-    // For now, create a distinctive geometry to indicate 3MF file was recognized
-    const geometry = new THREE.ConeGeometry(15, 30, 8);
-    return geometry;
+  // 3MF parser implementation
+  const parse3MF = async (buffer: ArrayBuffer): Promise<THREE.BufferGeometry> => {
+    try {
+      const zip = new JSZip();
+      const zipFile = await zip.loadAsync(buffer);
+      
+      // Look for the main 3D model file (usually in 3D/3dmodel.model)
+      const modelFile = zipFile.file('3D/3dmodel.model');
+      if (!modelFile) {
+        console.warn('3MF: No 3D model file found');
+        return new THREE.ConeGeometry(15, 30, 8);
+      }
+      
+      const xmlText = await modelFile.async('text');
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      
+      // Parse vertices
+      const vertices: number[] = [];
+      const vertexElements = xmlDoc.querySelectorAll('vertex');
+      const vertexMap: THREE.Vector3[] = [];
+      
+      vertexElements.forEach((vertex) => {
+        const x = parseFloat(vertex.getAttribute('x') || '0');
+        const y = parseFloat(vertex.getAttribute('y') || '0');
+        const z = parseFloat(vertex.getAttribute('z') || '0');
+        vertexMap.push(new THREE.Vector3(x, y, z));
+      });
+      
+      // Parse triangles
+      const triangleElements = xmlDoc.querySelectorAll('triangle');
+      triangleElements.forEach((triangle) => {
+        const v1 = parseInt(triangle.getAttribute('v1') || '0');
+        const v2 = parseInt(triangle.getAttribute('v2') || '0');
+        const v3 = parseInt(triangle.getAttribute('v3') || '0');
+        
+        if (vertexMap[v1] && vertexMap[v2] && vertexMap[v3]) {
+          // Add triangle vertices
+          vertices.push(vertexMap[v1].x, vertexMap[v1].y, vertexMap[v1].z);
+          vertices.push(vertexMap[v2].x, vertexMap[v2].y, vertexMap[v2].z);
+          vertices.push(vertexMap[v3].x, vertexMap[v3].y, vertexMap[v3].z);
+        }
+      });
+      
+      if (vertices.length === 0) {
+        console.warn('3MF: No valid triangles found');
+        return new THREE.ConeGeometry(15, 30, 8);
+      }
+      
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.computeVertexNormals();
+      
+      return geometry;
+    } catch (error) {
+      console.error('Error parsing 3MF file:', error);
+      return new THREE.ConeGeometry(15, 30, 8);
+    }
   };
 
   if (!geometry) {
