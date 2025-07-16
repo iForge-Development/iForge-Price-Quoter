@@ -30,6 +30,11 @@ export default function ModelViewer({ file }: ModelViewerProps) {
           // This is a simplified implementation - in production, use a proper OBJ loader
           const text = new TextDecoder().decode(buffer);
           loadedGeometry = parseOBJ(text);
+        } else if (fileExtension === '3mf') {
+          // For 3MF files, create a placeholder for now
+          // 3MF is a complex ZIP format that requires specialized parsing
+          // This creates a recognizable placeholder that can be replaced with proper 3MF parsing
+          loadedGeometry = parse3MF(buffer);
         } else {
           // For other formats, create a placeholder geometry
           loadedGeometry = new THREE.BoxGeometry(20, 20, 20);
@@ -159,6 +164,15 @@ export default function ModelViewer({ file }: ModelViewerProps) {
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     geometry.computeVertexNormals(); // Compute normals automatically
     
+    return geometry;
+  };
+
+  // Simple 3MF parser (placeholder implementation)
+  const parse3MF = (buffer: ArrayBuffer): THREE.BufferGeometry => {
+    // 3MF files are ZIP archives containing XML files
+    // This is a placeholder implementation - in production, use a proper 3MF loader
+    // For now, create a distinctive geometry to indicate 3MF file was recognized
+    const geometry = new THREE.ConeGeometry(15, 30, 8);
     return geometry;
   };
 
