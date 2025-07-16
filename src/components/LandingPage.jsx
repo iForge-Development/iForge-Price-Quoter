@@ -6,11 +6,11 @@ import FileUpload from './FileUpload';
 import PrintPreviewModal from './PrintPreviewModal';
 
 export default function LandingPage() {
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (file) => {
     setIsUploading(true);
     
     // Simulate upload processing

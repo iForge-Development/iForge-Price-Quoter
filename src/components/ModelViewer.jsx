@@ -4,13 +4,9 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import JSZip from 'jszip';
 
-interface ModelViewerProps {
-  file: File;
-}
-
-export default function ModelViewer({ file }: ModelViewerProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
+export default function ModelViewer({ file }) {
+  const meshRef = useRef(null);
+  const [geometry, setGeometry] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +16,7 @@ export default function ModelViewer({ file }: ModelViewerProps) {
         const buffer = await file.arrayBuffer();
         const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-        let loadedGeometry: THREE.BufferGeometry | null = null;
+        let loadedGeometry = null;
 
         if (fileExtension === 'stl') {
           // For STL files, we'll need to manually parse
@@ -42,7 +38,7 @@ export default function ModelViewer({ file }: ModelViewerProps) {
         if (loadedGeometry) {
           // Center and scale the geometry
           loadedGeometry.computeBoundingBox();
-          const box = loadedGeometry.boundingBox!;
+          const box = loadedGeometry.boundingBox;
           const size = box.getSize(new THREE.Vector3());
           const maxDimension = Math.max(size.x, size.y, size.z);
           
@@ -52,7 +48,7 @@ export default function ModelViewer({ file }: ModelViewerProps) {
           
           // Center on print bed
           loadedGeometry.computeBoundingBox();
-          const newBox = loadedGeometry.boundingBox!;
+          const newBox = loadedGeometry.boundingBox;
           const center = newBox.getCenter(new THREE.Vector3());
           loadedGeometry.translate(-center.x, -newBox.min.y, -center.z);
           
@@ -72,14 +68,14 @@ export default function ModelViewer({ file }: ModelViewerProps) {
   }, [file]);
 
   // Simple STL parser (very basic implementation)
-  const parseSTL = (buffer: ArrayBuffer): THREE.BufferGeometry => {
+  const parseSTL = (buffer) => {
     const geometry = new THREE.BufferGeometry();
     const dataView = new DataView(buffer);
     
     // Skip header (80 bytes) and read number of triangles
     const numTriangles = dataView.getUint32(80, true);
-    const vertices: number[] = [];
-    const normals: number[] = [];
+    const vertices = [];
+    const normals = [];
     
     let offset = 84;
     for (let i = 0; i < numTriangles; i++) {
@@ -111,11 +107,11 @@ export default function ModelViewer({ file }: ModelViewerProps) {
   };
 
   // Simple OBJ parser (very basic implementation)
-  const parseOBJ = (text: string): THREE.BufferGeometry => {
+  const parseOBJ = (text) => {
     const geometry = new THREE.BufferGeometry();
-    const vertices: number[] = [];
-    const normals: number[] = [];
-    const tempVertices: THREE.Vector3[] = [];
+    const vertices = [];
+    const normals = [];
+    const tempVertices = [];
     
     const lines = text.split('\n');
     
@@ -167,7 +163,7 @@ export default function ModelViewer({ file }: ModelViewerProps) {
   };
 
   // 3MF parser implementation
-  const parse3MF = async (buffer: ArrayBuffer): Promise<THREE.BufferGeometry> => {
+  const parse3MF = async (buffer) => {
     try {
       const zip = new JSZip();
       const zipFile = await zip.loadAsync(buffer);
@@ -184,9 +180,9 @@ export default function ModelViewer({ file }: ModelViewerProps) {
       const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
       
       // Parse vertices
-      const vertices: number[] = [];
+      const vertices = [];
       const vertexElements = xmlDoc.querySelectorAll('vertex');
-      const vertexMap: THREE.Vector3[] = [];
+      const vertexMap = [];
       
       vertexElements.forEach((vertex) => {
         const x = parseFloat(vertex.getAttribute('x') || '0');
