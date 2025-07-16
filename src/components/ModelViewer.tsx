@@ -2,11 +2,14 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import JSZip from 'jszip';
 
-export default function ModelViewer({ file }) {
-  const meshRef = useRef(null);
-  const [geometry, setGeometry] = useState(null);
+interface ModelViewerProps {
+  file: File;
+}
+
+export default function ModelViewer({ file }: ModelViewerProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -16,7 +19,7 @@ export default function ModelViewer({ file }) {
         const buffer = await file.arrayBuffer();
         const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-        let loadedGeometry = null;
+        let loadedGeometry: THREE.BufferGeometry | null = null;
 
         if (fileExtension === 'stl') {
           // For STL files, we'll need to manually parse
@@ -27,9 +30,6 @@ export default function ModelViewer({ file }) {
           // This is a simplified implementation - in production, use a proper OBJ loader
           const text = new TextDecoder().decode(buffer);
           loadedGeometry = parseOBJ(text);
-        } else if (fileExtension === '3mf') {
-          // Parse 3MF files (ZIP archives containing XML model data)
-          loadedGeometry = await parse3MF(buffer);
         } else {
           // For other formats, create a placeholder geometry
           loadedGeometry = new THREE.BoxGeometry(20, 20, 20);
@@ -38,7 +38,7 @@ export default function ModelViewer({ file }) {
         if (loadedGeometry) {
           // Center and scale the geometry
           loadedGeometry.computeBoundingBox();
-          const box = loadedGeometry.boundingBox;
+          const box = loadedGeometry.boundingBox!;
           const size = box.getSize(new THREE.Vector3());
           const maxDimension = Math.max(size.x, size.y, size.z);
           
@@ -48,7 +48,7 @@ export default function ModelViewer({ file }) {
           
           // Center on print bed
           loadedGeometry.computeBoundingBox();
-          const newBox = loadedGeometry.boundingBox;
+          const newBox = loadedGeometry.boundingBox!;
           const center = newBox.getCenter(new THREE.Vector3());
           loadedGeometry.translate(-center.x, -newBox.min.y, -center.z);
           
@@ -68,14 +68,14 @@ export default function ModelViewer({ file }) {
   }, [file]);
 
   // Simple STL parser (very basic implementation)
-  const parseSTL = (buffer) => {
+  const parseSTL = (buffer: ArrayBuffer): THREE.BufferGeometry => {
     const geometry = new THREE.BufferGeometry();
     const dataView = new DataView(buffer);
     
     // Skip header (80 bytes) and read number of triangles
     const numTriangles = dataView.getUint32(80, true);
-    const vertices = [];
-    const normals = [];
+    const vertices: number[] = [];
+    const normals: number[] = [];
     
     let offset = 84;
     for (let i = 0; i < numTriangles; i++) {
@@ -107,11 +107,11 @@ export default function ModelViewer({ file }) {
   };
 
   // Simple OBJ parser (very basic implementation)
-  const parseOBJ = (text) => {
+  const parseOBJ = (text: string): THREE.BufferGeometry => {
     const geometry = new THREE.BufferGeometry();
-    const vertices = [];
-    const normals = [];
-    const tempVertices = [];
+    const vertices: number[] = [];
+    const normals: number[] = [];
+    const tempVertices: THREE.Vector3[] = [];
     
     const lines = text.split('\n');
     
@@ -160,66 +160,6 @@ export default function ModelViewer({ file }) {
     geometry.computeVertexNormals(); // Compute normals automatically
     
     return geometry;
-  };
-
-  // 3MF parser implementation
-  const parse3MF = async (buffer) => {
-    try {
-      const zip = new JSZip();
-      const zipFile = await zip.loadAsync(buffer);
-      
-      // Look for the main 3D model file (usually in 3D/3dmodel.model)
-      const modelFile = zipFile.file('3D/3dmodel.model');
-      if (!modelFile) {
-        console.warn('3MF: No 3D model file found');
-        return new THREE.ConeGeometry(15, 30, 8);
-      }
-      
-      const xmlText = await modelFile.async('text');
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-      
-      // Parse vertices
-      const vertices = [];
-      const vertexElements = xmlDoc.querySelectorAll('vertex');
-      const vertexMap = [];
-      
-      vertexElements.forEach((vertex) => {
-        const x = parseFloat(vertex.getAttribute('x') || '0');
-        const y = parseFloat(vertex.getAttribute('y') || '0');
-        const z = parseFloat(vertex.getAttribute('z') || '0');
-        vertexMap.push(new THREE.Vector3(x, y, z));
-      });
-      
-      // Parse triangles
-      const triangleElements = xmlDoc.querySelectorAll('triangle');
-      triangleElements.forEach((triangle) => {
-        const v1 = parseInt(triangle.getAttribute('v1') || '0');
-        const v2 = parseInt(triangle.getAttribute('v2') || '0');
-        const v3 = parseInt(triangle.getAttribute('v3') || '0');
-        
-        if (vertexMap[v1] && vertexMap[v2] && vertexMap[v3]) {
-          // Add triangle vertices
-          vertices.push(vertexMap[v1].x, vertexMap[v1].y, vertexMap[v1].z);
-          vertices.push(vertexMap[v2].x, vertexMap[v2].y, vertexMap[v2].z);
-          vertices.push(vertexMap[v3].x, vertexMap[v3].y, vertexMap[v3].z);
-        }
-      });
-      
-      if (vertices.length === 0) {
-        console.warn('3MF: No valid triangles found');
-        return new THREE.ConeGeometry(15, 30, 8);
-      }
-      
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-      geometry.computeVertexNormals();
-      
-      return geometry;
-    } catch (error) {
-      console.error('Error parsing 3MF file:', error);
-      return new THREE.ConeGeometry(15, 30, 8);
-    }
   };
 
   if (!geometry) {

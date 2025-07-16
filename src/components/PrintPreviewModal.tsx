@@ -9,8 +9,20 @@ import { Clock, Weight, DollarSign, Printer, Download, X } from 'lucide-react';
 import ModelViewer from './ModelViewer';
 import PrintBed from './PrintBed';
 
-export default function PrintPreviewModal({ isOpen, onClose, file }) {
-  const [estimates, setEstimates] = useState(null);
+interface PrintEstimates {
+  printTime: string;
+  filamentUsed: number; // grams
+  costKES: number;
+}
+
+interface PrintPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  file: File | null;
+}
+
+export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPreviewModalProps) {
+  const [estimates, setEstimates] = useState<PrintEstimates | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Simulate backend calculation
@@ -36,7 +48,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }) {
     }
   }, [file, isOpen]);
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
       currency: 'KES',

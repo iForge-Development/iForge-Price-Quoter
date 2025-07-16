@@ -4,16 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileUp, AlertCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
+interface FileUploadProps {
+  onFileUpload: (file: File) => void;
+  isLoading?: boolean;
+}
+
 const ACCEPTED_FILE_TYPES = {
   'model/stl': ['.stl'],
   'application/x-3mf': ['.3mf'],
   'application/x-wavefront-obj': ['.obj'],
 };
 
-export default function FileUpload({ onFileUpload, isLoading }) {
-  const [error, setError] = useState(null);
+export default function FileUpload({ onFileUpload, isLoading }: FileUploadProps) {
+  const [error, setError] = useState<string | null>(null);
 
-  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     if (rejectedFiles.length > 0) {
       setError('Please upload a valid .stl, .3mf, or .obj file');
       return;

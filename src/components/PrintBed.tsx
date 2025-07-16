@@ -5,7 +5,7 @@ export default function PrintBed() {
   // Create grid geometry for the print bed
   const createGridGeometry = () => {
     const geometry = new THREE.BufferGeometry();
-    const vertices = [];
+    const vertices: number[] = [];
     const size = 128; // 256mm bed, scaled down
     const divisions = 16;
     const step = size / divisions;
