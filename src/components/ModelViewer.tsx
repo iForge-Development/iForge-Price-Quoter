@@ -5,9 +5,10 @@ import * as THREE from 'three';
 
 interface ModelViewerProps {
   file: File;
+  rotation?: [number, number, number];
 }
 
-export default function ModelViewer({ file }: ModelViewerProps) {
+export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -167,7 +168,7 @@ export default function ModelViewer({ file }: ModelViewerProps) {
   }
 
   return (
-    <mesh ref={meshRef} geometry={geometry} position={[0, 0, 0]} castShadow receiveShadow>
+    <mesh ref={meshRef} geometry={geometry} position={[0, 0, 0]} rotation={rotation} castShadow receiveShadow>
       <meshStandardMaterial
         color="#ff6b35"
         metalness={0.1}

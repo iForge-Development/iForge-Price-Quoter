@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment } from '@react-three/drei';
-import { Clock, Weight, DollarSign, Printer, Download, X } from 'lucide-react';
+import { Clock, Weight, DollarSign, Printer, Download, RotateCw, RotateCcw, FlipHorizontal } from 'lucide-react';
 import ModelViewer from './ModelViewer';
 import PrintBed from './PrintBed';
 
@@ -24,6 +24,7 @@ interface PrintPreviewModalProps {
 export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPreviewModalProps) {
   const [estimates, setEstimates] = useState<PrintEstimates | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [modelRotation, setModelRotation] = useState<[number, number, number]>([0, 0, 0]);
 
   // Simulate backend calculation
   useEffect(() => {
@@ -60,15 +61,10 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
         <DialogHeader className="p-6 pb-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <Printer className="h-6 w-6 text-primary" />
-              3D Print Preview
-            </DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            <Printer className="h-6 w-6 text-primary" />
+            3D Print Preview
+          </DialogTitle>
           {file && (
             <p className="text-muted-foreground">
               {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
@@ -98,7 +94,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
               <Suspense fallback={null}>
                 <Environment preset="studio" />
                 <PrintBed />
-                {file && <ModelViewer file={file} />}
+                {file && <ModelViewer file={file} rotation={modelRotation} />}
               </Suspense>
             </Canvas>
             
@@ -107,6 +103,37 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
                 256×256×256mm Print Bed
               </Badge>
             </div>
+            
+            {file && (
+              <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-2">
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setModelRotation([modelRotation[0] + Math.PI/2, modelRotation[1], modelRotation[2]])}
+                    className="text-white hover:bg-white/20"
+                  >
+                    <RotateCw className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setModelRotation([modelRotation[0], modelRotation[1] + Math.PI/2, modelRotation[2]])}
+                    className="text-white hover:bg-white/20"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setModelRotation([modelRotation[0], modelRotation[1], modelRotation[2] + Math.PI/2])}
+                    className="text-white hover:bg-white/20"
+                  >
+                    <FlipHorizontal className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Estimates Panel */}
