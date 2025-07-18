@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import JSZip from 'jszip';
 
 interface ModelViewerProps {
   file: File;
@@ -31,6 +32,9 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
           // This is a simplified implementation - in production, use a proper OBJ loader
           const text = new TextDecoder().decode(buffer);
           loadedGeometry = parseOBJ(text);
+        } else if (fileExtension === '3mf') {
+          // For 3MF files, extract and parse the model data
+          loadedGeometry = await parse3MF(buffer);
         } else {
           // For other formats, create a placeholder geometry
           loadedGeometry = new THREE.BoxGeometry(20, 20, 20);
@@ -161,6 +165,68 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
     geometry.computeVertexNormals(); // Compute normals automatically
     
     return geometry;
+  };
+
+  // 3MF parser (basic implementation)
+  const parse3MF = async (buffer: ArrayBuffer): Promise<THREE.BufferGeometry> => {
+    const geometry = new THREE.BufferGeometry();
+    const vertices: number[] = [];
+    
+    try {
+      const zip = await JSZip.loadAsync(buffer);
+      const modelFile = zip.file('3D/3dmodel.model');
+      
+      if (!modelFile) {
+        throw new Error('No 3D model found in 3MF file');
+      }
+      
+      const xmlText = await modelFile.async('text');
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      
+      // Extract vertices
+      const vertexNodes = xmlDoc.getElementsByTagName('vertex');
+      const tempVertices: THREE.Vector3[] = [];
+      
+      for (let i = 0; i < vertexNodes.length; i++) {
+        const vertex = vertexNodes[i];
+        const x = parseFloat(vertex.getAttribute('x') || '0');
+        const y = parseFloat(vertex.getAttribute('y') || '0');
+        const z = parseFloat(vertex.getAttribute('z') || '0');
+        tempVertices.push(new THREE.Vector3(x, y, z));
+      }
+      
+      // Extract triangles
+      const triangleNodes = xmlDoc.getElementsByTagName('triangle');
+      
+      for (let i = 0; i < triangleNodes.length; i++) {
+        const triangle = triangleNodes[i];
+        const v1 = parseInt(triangle.getAttribute('v1') || '0');
+        const v2 = parseInt(triangle.getAttribute('v2') || '0');
+        const v3 = parseInt(triangle.getAttribute('v3') || '0');
+        
+        if (tempVertices[v1] && tempVertices[v2] && tempVertices[v3]) {
+          vertices.push(
+            tempVertices[v1].x, tempVertices[v1].y, tempVertices[v1].z,
+            tempVertices[v2].x, tempVertices[v2].y, tempVertices[v2].z,
+            tempVertices[v3].x, tempVertices[v3].y, tempVertices[v3].z
+          );
+        }
+      }
+      
+      if (vertices.length === 0) {
+        throw new Error('No triangles found in 3MF file');
+      }
+      
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.computeVertexNormals();
+      
+      return geometry;
+    } catch (error) {
+      console.error('Error parsing 3MF file:', error);
+      // Return a placeholder box on error
+      return new THREE.BoxGeometry(20, 20, 20);
+    }
   };
 
   if (!geometry) {
