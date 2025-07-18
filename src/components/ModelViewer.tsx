@@ -14,6 +14,14 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Helper function to position geometry on print bed
+  const positionOnPrintBed = (geom: THREE.BufferGeometry) => {
+    geom.computeBoundingBox();
+    const box = geom.boundingBox!;
+    const center = box.getCenter(new THREE.Vector3());
+    geom.translate(-center.x, -box.min.y, -center.z);
+  };
+
   useEffect(() => {
     const loadModel = async () => {
       setIsLoading(true);
@@ -56,11 +64,8 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
           const scale = Math.min(40 / maxDimension, 1);
           loadedGeometry.scale(scale, scale, scale);
           
-          // Center on print bed
-          loadedGeometry.computeBoundingBox();
-          const newBox = loadedGeometry.boundingBox!;
-          const center = newBox.getCenter(new THREE.Vector3());
-          loadedGeometry.translate(-center.x, -newBox.min.y, -center.z);
+          // Position on print bed
+          positionOnPrintBed(loadedGeometry);
           
           setGeometry(loadedGeometry);
         }
@@ -68,6 +73,7 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
         console.error('Error loading model:', error);
         // Fallback to a simple box
         const fallbackGeometry = new THREE.BoxGeometry(20, 20, 20);
+        positionOnPrintBed(fallbackGeometry);
         setGeometry(fallbackGeometry);
       } finally {
         setIsLoading(false);
@@ -76,6 +82,28 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
 
     loadModel();
   }, [file]);
+
+  // Effect to reposition geometry when rotation changes
+  useEffect(() => {
+    if (geometry && meshRef.current) {
+      // Create a copy of the geometry to avoid modifying the original
+      const tempGeometry = geometry.clone();
+      
+      // Apply the rotation to the geometry
+      const rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationFromEuler(new THREE.Euler(rotation[0], rotation[1], rotation[2]));
+      tempGeometry.applyMatrix4(rotationMatrix);
+      
+      // Reposition on print bed after rotation
+      positionOnPrintBed(tempGeometry);
+      
+      // Update the mesh geometry
+      meshRef.current.geometry = tempGeometry;
+      
+      // Reset mesh rotation since we applied it to the geometry
+      meshRef.current.rotation.set(0, 0, 0);
+    }
+  }, [rotation, geometry]);
 
   // Simple STL parser (very basic implementation)
   const parseSTL = (buffer: ArrayBuffer): THREE.BufferGeometry => {
@@ -282,7 +310,7 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
   }
 
   return (
-    <mesh ref={meshRef} geometry={geometry} position={[0, 0, 0]} rotation={rotation} castShadow receiveShadow>
+    <mesh ref={meshRef} geometry={geometry} position={[0, 0, 0]} castShadow receiveShadow>
       <meshStandardMaterial
         color="#ff6b35"
         metalness={0.1}
