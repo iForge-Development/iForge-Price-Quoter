@@ -195,7 +195,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
                   </CardContent>
                 </Card>
 
-                <div className="pt-4 space-y-2">
+                {/*<div className="pt-4 space-y-2">
                   <Button className="w-full" size="lg">
                     <Download className="h-4 w-4 mr-2" />
                     Start Print Job
@@ -205,7 +205,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
                   </Button>
                 </div>
 
-                <div className="text-xs text-muted-foreground p-4 bg-accent/50 rounded-lg">
+                 <div className="text-xs text-muted-foreground p-4 bg-accent/50 rounded-lg">
                   <p className="font-medium mb-1">Print Settings:</p>
                   <ul className="space-y-1">
                     <li>• Layer Height: 0.2mm</li>
@@ -213,7 +213,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
                     <li>• Support: Auto-generated</li>
                     <li>• Material: PLA</li>
                   </ul>
-                </div>
+            </div> */}
               </div>
             ) : null}
           </div>
