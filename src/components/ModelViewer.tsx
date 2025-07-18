@@ -33,8 +33,13 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
           const text = new TextDecoder().decode(buffer);
           loadedGeometry = parseOBJ(text);
         } else if (fileExtension === '3mf') {
-          // For 3MF files, extract and parse the model data
-          loadedGeometry = await parse3MF(buffer);
+          // For 3MF files, convert to STL format and use STL parser
+          const stlBuffer = await convert3MFToSTL(buffer);
+          if (stlBuffer) {
+            loadedGeometry = parseSTL(stlBuffer);
+          } else {
+            loadedGeometry = new THREE.BoxGeometry(20, 20, 20);
+          }
         } else {
           // For other formats, create a placeholder geometry
           loadedGeometry = new THREE.BoxGeometry(20, 20, 20);
@@ -167,17 +172,15 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
     return geometry;
   };
 
-  // 3MF parser (basic implementation)
-  const parse3MF = async (buffer: ArrayBuffer): Promise<THREE.BufferGeometry> => {
-    const geometry = new THREE.BufferGeometry();
-    const vertices: number[] = [];
-    
+  // Convert 3MF to STL format
+  const convert3MFToSTL = async (buffer: ArrayBuffer): Promise<ArrayBuffer | null> => {
     try {
       const zip = await JSZip.loadAsync(buffer);
       const modelFile = zip.file('3D/3dmodel.model');
       
       if (!modelFile) {
-        throw new Error('No 3D model found in 3MF file');
+        console.error('No 3D model found in 3MF file');
+        return null;
       }
       
       const xmlText = await modelFile.async('text');
@@ -186,18 +189,19 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
       
       // Extract vertices
       const vertexNodes = xmlDoc.getElementsByTagName('vertex');
-      const tempVertices: THREE.Vector3[] = [];
+      const vertices: THREE.Vector3[] = [];
       
       for (let i = 0; i < vertexNodes.length; i++) {
         const vertex = vertexNodes[i];
         const x = parseFloat(vertex.getAttribute('x') || '0');
         const y = parseFloat(vertex.getAttribute('y') || '0');
         const z = parseFloat(vertex.getAttribute('z') || '0');
-        tempVertices.push(new THREE.Vector3(x, y, z));
+        vertices.push(new THREE.Vector3(x, y, z));
       }
       
       // Extract triangles
       const triangleNodes = xmlDoc.getElementsByTagName('triangle');
+      const triangles: number[][] = [];
       
       for (let i = 0; i < triangleNodes.length; i++) {
         const triangle = triangleNodes[i];
@@ -205,27 +209,71 @@ export default function ModelViewer({ file, rotation = [0, 0, 0] }: ModelViewerP
         const v2 = parseInt(triangle.getAttribute('v2') || '0');
         const v3 = parseInt(triangle.getAttribute('v3') || '0');
         
-        if (tempVertices[v1] && tempVertices[v2] && tempVertices[v3]) {
-          vertices.push(
-            tempVertices[v1].x, tempVertices[v1].y, tempVertices[v1].z,
-            tempVertices[v2].x, tempVertices[v2].y, tempVertices[v2].z,
-            tempVertices[v3].x, tempVertices[v3].y, tempVertices[v3].z
-          );
+        if (vertices[v1] && vertices[v2] && vertices[v3]) {
+          triangles.push([v1, v2, v3]);
         }
       }
       
-      if (vertices.length === 0) {
-        throw new Error('No triangles found in 3MF file');
+      if (triangles.length === 0) {
+        console.error('No valid triangles found in 3MF file');
+        return null;
       }
       
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-      geometry.computeVertexNormals();
+      // Convert to STL format
+      const stlData = new ArrayBuffer(80 + 4 + triangles.length * 50);
+      const view = new DataView(stlData);
       
-      return geometry;
+      // Write STL header (80 bytes)
+      const header = 'Generated from 3MF';
+      for (let i = 0; i < Math.min(header.length, 80); i++) {
+        view.setUint8(i, header.charCodeAt(i));
+      }
+      
+      // Write number of triangles
+      view.setUint32(80, triangles.length, true);
+      
+      let offset = 84;
+      for (const triangle of triangles) {
+        const v1 = vertices[triangle[0]];
+        const v2 = vertices[triangle[1]];
+        const v3 = vertices[triangle[2]];
+        
+        // Calculate normal
+        const edge1 = new THREE.Vector3().subVectors(v2, v1);
+        const edge2 = new THREE.Vector3().subVectors(v3, v1);
+        const normal = new THREE.Vector3().crossVectors(edge1, edge2).normalize();
+        
+        // Write normal
+        view.setFloat32(offset, normal.x, true);
+        view.setFloat32(offset + 4, normal.y, true);
+        view.setFloat32(offset + 8, normal.z, true);
+        offset += 12;
+        
+        // Write vertices
+        view.setFloat32(offset, v1.x, true);
+        view.setFloat32(offset + 4, v1.y, true);
+        view.setFloat32(offset + 8, v1.z, true);
+        offset += 12;
+        
+        view.setFloat32(offset, v2.x, true);
+        view.setFloat32(offset + 4, v2.y, true);
+        view.setFloat32(offset + 8, v2.z, true);
+        offset += 12;
+        
+        view.setFloat32(offset, v3.x, true);
+        view.setFloat32(offset + 4, v3.y, true);
+        view.setFloat32(offset + 8, v3.z, true);
+        offset += 12;
+        
+        // Write attribute byte count (0)
+        view.setUint16(offset, 0, true);
+        offset += 2;
+      }
+      
+      return stlData;
     } catch (error) {
-      console.error('Error parsing 3MF file:', error);
-      // Return a placeholder box on error
-      return new THREE.BoxGeometry(20, 20, 20);
+      console.error('Error converting 3MF to STL:', error);
+      return null;
     }
   };
 
