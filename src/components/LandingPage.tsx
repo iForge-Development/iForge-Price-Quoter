@@ -61,21 +61,13 @@ export default function LandingPage() {
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-12">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
-            <Zap className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Professional 3D Printing Preview</span>
-          </div>
+          
           
           <h2 className="text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
             Preview Your 3D Print
             <br />
             <span className="text-primary">Before You Print</span>
           </h2>
-          
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Upload your STL, 3MF, or OBJ files and get instant preview with accurate print estimates. 
-            See exactly how your model will look on a Bambu Lab-style 256×256×256mm print bed.
-          </p>
 
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             <Badge variant="outline" className="text-lg px-4 py-2">
@@ -139,7 +131,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 mt-20 border-t">
         <div className="text-center text-muted-foreground">
-          <p>&copy; 2024 PrintPreview. Professional 3D printing preview tool.</p>
+          <p>&copy; 2025 PrintPreview. Professional 3D printing preview tool.</p>
           <p className="text-sm mt-2">
             Designed for the Kenyan 3D printing community with Bambu Lab aesthetics.
           </p>
