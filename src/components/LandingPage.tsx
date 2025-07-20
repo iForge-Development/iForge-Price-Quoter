@@ -111,7 +111,7 @@ export default function LandingPage() {
 
         {/* Stats Section */}
         <div className="bg-gradient-glow rounded-2xl p-8 border">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
+          <div className="flex justify-center text-center gap-x-32">
             <div>
               <div className="text-3xl font-bold text-primary mb-2">256×256mm</div>
               <div className="text-muted-foreground">Print Bed Size</div>
@@ -120,23 +120,11 @@ export default function LandingPage() {
               <div className="text-3xl font-bold text-primary mb-2">&lt; 3s</div>
               <div className="text-muted-foreground">Preview Generation</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-primary mb-2">KES</div>
-              <div className="text-muted-foreground">Local Currency Support</div>
-            </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="container mx-auto px-4 py-8 mt-20 border-t">
-        <div className="text-center text-muted-foreground">
-          <p>&copy; 2025 PrintPreview. Professional 3D printing preview tool.</p>
-          <p className="text-sm mt-2">
-            Designed for the Kenyan 3D printing community with Bambu Lab aesthetics.
-          </p>
-        </div>
-      </footer>
+      
 
       {/* Modal */}
       <PrintPreviewModal

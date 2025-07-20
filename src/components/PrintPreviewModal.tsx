@@ -74,7 +74,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
 
         <div className="flex flex-col lg:flex-row h-[600px]">
           {/* 3D Preview */}
-          <div className="flex-1 relative bg-gradient-to-br from-background to-accent/20">
+          <div className="flex-1 relative bg-gradient-to-br from-background to-accent/20 min-h-[300px] sm:min-h-[400px] lg:h-[600px]">
             <Canvas>
               <PerspectiveCamera makeDefault position={[0, 50, 100]} fov={50} />
               <OrbitControls
@@ -137,7 +137,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
           </div>
 
           {/* Estimates Panel */}
-          <div className="w-full lg:w-80 p-6 border-l bg-card">
+          <div className="w-full lg:w-80 p-6 border-l bg-card max-h-[600px] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Print Estimates</h3>
             
             {isCalculating ? (
