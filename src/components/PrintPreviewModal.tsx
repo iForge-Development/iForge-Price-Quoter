@@ -1,17 +1,25 @@
 import React, { Suspense, useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment } from '@react-three/drei';
-import { Clock, Weight, DollarSign, Printer, Download, RotateCw, RotateCcw, FlipHorizontal } from 'lucide-react';
+import {
+  Canvas
+} from '@react-three/fiber';
+import {
+  OrbitControls, PerspectiveCamera, Environment
+} from '@react-three/drei';
+import {
+  Clock, Weight, DollarSign, Printer, RotateCw, RotateCcw, FlipHorizontal
+} from 'lucide-react';
 import ModelViewer from './ModelViewer';
 import PrintBed from './PrintBed';
 
 interface PrintEstimates {
   printTime: string;
-  filamentUsed: number; // grams
+  filamentUsed: number;
   costKES: number;
 }
 
@@ -21,33 +29,44 @@ interface PrintPreviewModalProps {
   file: File | null;
 }
 
+const filamentTypes = {
+  PLA: 1.0,
+  PETG: 1.2,
+  TPU: 1.3,
+  ASA: 1.4,
+  ABS: 1.1,
+  PVA: 1.8,
+};
+
 export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPreviewModalProps) {
   const [estimates, setEstimates] = useState<PrintEstimates | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [modelRotation, setModelRotation] = useState<[number, number, number]>([0, 0, 0]);
+  const [filament, setFilament] = useState<keyof typeof filamentTypes>("PLA");
 
-  // Simulate backend calculation
   useEffect(() => {
     if (file && isOpen) {
       setIsCalculating(true);
-      
-      // Simulate API call delay
+
       setTimeout(() => {
-        // Mock calculations based on file size (in real app, this would come from backend)
-        const fileSizeMB = file.size / (1024 * 1024);
-        const baseTime = Math.max(30, fileSizeMB * 45); // minutes
+        const fileSizeMB = file.size / (2048 * 2048);
+        const baseTime = Math.max(30, fileSizeMB * 45);
         const hours = Math.floor(baseTime / 60);
         const minutes = Math.round(baseTime % 60);
-        
+
+        const filamentUsed = Math.round(fileSizeMB * 15 + 20);
+        const costKES = Math.round(filamentUsed * 2.5 * filamentTypes[filament]);
+
         setEstimates({
           printTime: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
-          filamentUsed: Math.round(fileSizeMB * 15 + 20), // grams
-          costKES: Math.round((fileSizeMB * 15 + 20) * 2.5), // KES per gram
+          filamentUsed,
+          costKES
         });
+
         setIsCalculating(false);
       }, 2000);
     }
-  }, [file, isOpen]);
+  }, [file, isOpen, filament]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -67,68 +86,56 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
           </DialogTitle>
           {file && (
             <p className="text-muted-foreground">
-              {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+              {file.name} ({(file.size / (2048 * 2048)).toFixed(2)} MB)
             </p>
           )}
         </DialogHeader>
 
         <div className="flex flex-col lg:flex-row h-[600px]">
-          {/* 3D Preview */}
+          {/* 3D Viewer */}
           <div className="flex-1 relative bg-gradient-to-br from-background to-accent/20 min-h-[300px] sm:min-h-[400px] lg:h-[600px]">
             <Canvas>
               <PerspectiveCamera makeDefault position={[0, 50, 100]} fov={50} />
               <OrbitControls
-                enablePan={true}
-                enableZoom={true}
-                enableRotate={true}
+                enablePan
+                enableZoom
+                enableRotate
                 minPolarAngle={0}
                 maxPolarAngle={Math.PI / 2}
                 target={[0, 0, 0]}
               />
-              
-              {/* Lighting */}
               <ambientLight intensity={0.4} />
               <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
               <directionalLight position={[-10, 10, -5]} intensity={0.5} />
-              
               <Suspense fallback={null}>
                 <Environment preset="studio" />
                 <PrintBed />
                 {file && <ModelViewer file={file} rotation={modelRotation} />}
               </Suspense>
             </Canvas>
-            
+
             <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-2">
               <Badge variant="secondary" className="text-xs">
                 256×256×256mm Print Bed
               </Badge>
             </div>
-            
+
             {file && (
               <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-2">
                 <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setModelRotation([modelRotation[0] + Math.PI/2, modelRotation[1], modelRotation[2]])}
-                    className="text-white hover:bg-white/20"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() =>
+                    setModelRotation([modelRotation[0] + Math.PI / 2, modelRotation[1], modelRotation[2]])
+                  } className="text-white hover:bg-white/20">
                     <RotateCw className="h-3 w-3" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setModelRotation([modelRotation[0], modelRotation[1] + Math.PI/2, modelRotation[2]])}
-                    className="text-white hover:bg-white/20"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() =>
+                    setModelRotation([modelRotation[0], modelRotation[1] + Math.PI / 2, modelRotation[2]])
+                  } className="text-white hover:bg-white/20">
                     <RotateCcw className="h-3 w-3" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setModelRotation([modelRotation[0], modelRotation[1], modelRotation[2] + Math.PI/2])}
-                    className="text-white hover:bg-white/20"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() =>
+                    setModelRotation([modelRotation[0], modelRotation[1], modelRotation[2] + Math.PI / 2])
+                  } className="text-white hover:bg-white/20">
                     <FlipHorizontal className="h-3 w-3" />
                   </Button>
                 </div>
@@ -139,7 +146,25 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
           {/* Estimates Panel */}
           <div className="w-full lg:w-80 p-6 border-l bg-card max-h-[600px] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Print Estimates</h3>
-            
+
+            {/* Filament Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Filament Type
+              </label>
+              <select
+                className="w-full border border-border bg-background p-2 rounded-md text-sm"
+                value={filament}
+                onChange={(e) => setFilament(e.target.value as keyof typeof filamentTypes)}
+              >
+                {Object.keys(filamentTypes).map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {isCalculating ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
@@ -157,18 +182,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
               </div>
             ) : estimates ? (
               <div className="space-y-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      Print Time
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-2xl font-bold text-primary">{estimates.printTime}</p>
-                  </CardContent>
-                </Card>
-
+                
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -194,26 +208,6 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
                     </p>
                   </CardContent>
                 </Card>
-
-                {/*<div className="pt-4 space-y-2">
-                  <Button className="w-full" size="lg">
-                    <Download className="h-4 w-4 mr-2" />
-                    Start Print Job
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    Save for Later
-                  </Button>
-                </div>
-
-                 <div className="text-xs text-muted-foreground p-4 bg-accent/50 rounded-lg">
-                  <p className="font-medium mb-1">Print Settings:</p>
-                  <ul className="space-y-1">
-                    <li>• Layer Height: 0.2mm</li>
-                    <li>• Infill: 20%</li>
-                    <li>• Support: Auto-generated</li>
-                    <li>• Material: PLA</li>
-                  </ul>
-            </div> */}
               </div>
             ) : null}
           </div>

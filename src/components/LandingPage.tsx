@@ -54,8 +54,6 @@ export default function LandingPage() {
               className="h-12 w-24 object-contain"
             />
           </div>
-
-            <h1 className="text-2xl font-bold text-foreground text-middle">PrintPreview</h1>
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="text-sm">

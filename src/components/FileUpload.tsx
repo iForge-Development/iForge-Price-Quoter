@@ -34,7 +34,7 @@ export default function FileUpload({ onFileUpload, isLoading }: FileUploadProps)
     onDrop,
     accept: ACCEPTED_FILE_TYPES,
     multiple: false,
-    maxSize: 50 * 1024 * 1024, // 50MB
+    maxSize: 100 * 1024 * 1024, // 100MB
   });
 
   const dropzoneClassName = cn(
@@ -102,7 +102,7 @@ export default function FileUpload({ onFileUpload, isLoading }: FileUploadProps)
       )}
 
       <div className="mt-6 text-center text-sm text-muted-foreground">
-        Maximum file size: 50MB
+        Maximum file size: 100MB
       </div>
     </div>
   );
