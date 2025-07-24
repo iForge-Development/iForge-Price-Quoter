@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Printer, Zap, Shield, Clock } from 'lucide-react';
 import FileUpload from './FileUpload';
 import PrintPreviewModal from './PrintPreviewModal';
+import iForgeLogo from "@/assets/iForge-logo2.png"; // adjust path as needed
+
 
 export default function LandingPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -45,10 +47,15 @@ export default function LandingPage() {
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-primary rounded-lg shadow-glow">
-              <Printer className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">PrintPreview</h1>
+          <div className="">
+            <img
+              src={iForgeLogo}
+              alt="iForge Logo"
+              className="h-12 w-24 object-contain"
+            />
+          </div>
+
+            <h1 className="text-2xl font-bold text-foreground text-middle">PrintPreview</h1>
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="text-sm">
