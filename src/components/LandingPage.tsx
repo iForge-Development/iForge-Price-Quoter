@@ -5,6 +5,7 @@ import { Printer, Zap, Shield, Clock } from 'lucide-react';
 import FileUpload from './FileUpload';
 import PrintPreviewModal from './PrintPreviewModal';
 import iForgeLogo from "@/assets/iForge-logo2.png"; // adjust path as needed
+import DarkModeToggle from '@/components/DarkModeToggle'; // Import the DarkModeToggle component
 
 
 export default function LandingPage() {
@@ -59,6 +60,7 @@ export default function LandingPage() {
             <Badge variant="secondary" className="text-sm">
               Powered by Bambu Lab
             </Badge>
+            <DarkModeToggle /> {/* Add the DarkModeToggle component here */}
           </div>
         </nav>
       </header>
