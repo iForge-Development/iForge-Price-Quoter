@@ -17,6 +17,9 @@ import {
 import ModelViewer from './ModelViewer';
 import PrintBed from './PrintBed';
 
+import * as THREE from 'three';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+
 interface PrintEstimates {
   printTime: string;
   filamentUsed: number;
@@ -48,25 +51,56 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
     if (file && isOpen) {
       setIsCalculating(true);
 
-      setTimeout(() => {
-        const fileSizeMB = file.size / (2048 * 2048);
-        const baseTime = Math.max(30, fileSizeMB * 45);
-        const hours = Math.floor(baseTime / 60);
-        const minutes = Math.round(baseTime % 60);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        const loader = new STLLoader();
+        const geometry = loader.parse(arrayBuffer);
 
-        const filamentUsed = Math.round(fileSizeMB * 15 + 20);
-        const costKES = Math.round(filamentUsed * 2.5 * filamentTypes[filament]);
+        geometry.computeBoundingBox();
+        geometry.computeVertexNormals();
+
+        const volume_mm3 = computeMeshVolume(geometry); // in mm³
+
+        const density = 1.24; // base density for PLA in g/cm³
+        const actualDensity = density * filamentTypes[filament];
+        const filamentUsed = +(volume_mm3 / 1000 * actualDensity).toFixed(1); // convert mm³ → cm³
+
+        const printSpeedFactor = 15; // mm³ per minute
+        const printTimeMin = Math.max(6, volume_mm3 / printSpeedFactor);
+        const printTime = printTimeMin < 60
+          ? `${Math.round(printTimeMin)}m`
+          : `${Math.floor(printTimeMin / 60)}h ${Math.round(printTimeMin % 60)}m`;
+
+        const costKES = Math.round((filamentUsed * .25) + (printTimeMin * .3));
 
         setEstimates({
-          printTime: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
+          printTime,
           filamentUsed,
           costKES
         });
 
         setIsCalculating(false);
-      }, 2000);
+      };
+
+      reader.readAsArrayBuffer(file);
     }
   }, [file, isOpen, filament]);
+
+  const computeMeshVolume = (geometry: THREE.BufferGeometry): number => {
+    const posAttr = geometry.attributes.position;
+    let volume = 0;
+
+    for (let i = 0; i < posAttr.count; i += 3) {
+      const p1 = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+      const p2 = new THREE.Vector3().fromBufferAttribute(posAttr, i + 1);
+      const p3 = new THREE.Vector3().fromBufferAttribute(posAttr, i + 2);
+
+      volume += p1.dot(p2.cross(p3)) / 6.0;
+    }
+
+    return Math.abs(volume); // mm³
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -86,7 +120,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
           </DialogTitle>
           {file && (
             <p className="text-muted-foreground">
-              {file.name} ({(file.size / (2048 * 2048)).toFixed(2)} MB)
+              {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
             </p>
           )}
         </DialogHeader>
@@ -182,7 +216,6 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
               </div>
             ) : estimates ? (
               <div className="space-y-4">
-                
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
