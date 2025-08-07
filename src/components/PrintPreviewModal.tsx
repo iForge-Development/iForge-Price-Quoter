@@ -5,25 +5,28 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Canvas
-} from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import {
   OrbitControls, PerspectiveCamera, Environment
 } from '@react-three/drei';
 import {
   Clock, Weight, DollarSign, Printer, RotateCw, RotateCcw, FlipHorizontal
 } from 'lucide-react';
-import ModelViewer from './ModelViewer';
-import PrintBed from './PrintBed';
-
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import ModelViewer from './ModelViewer';
+import PrintBed from './PrintBed';
 
 interface PrintEstimates {
   printTime: string;
   filamentUsed: number;
   costKES: number;
+  dimensions: {
+    width: number;
+    height: number;
+    depth: number;
+  };
 }
 
 interface PrintPreviewModalProps {
@@ -33,12 +36,8 @@ interface PrintPreviewModalProps {
 }
 
 const filamentTypes = {
-  PLA: 1.0,
-  PETG: 1.2,
-  TPU: 1.3,
-  ASA: 1.4,
-  ABS: 1.1,
-  PVA: 1.8,
+  PETG: 1.0,
+  PLA: 1.2,
 };
 
 export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPreviewModalProps) {
@@ -48,43 +47,71 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
   const [filament, setFilament] = useState<keyof typeof filamentTypes>("PLA");
 
   useEffect(() => {
-    if (file && isOpen) {
-      setIsCalculating(true);
+    if (!file || !isOpen) return;
 
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        const loader = new STLLoader();
-        const geometry = loader.parse(arrayBuffer);
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!extension) return;
+
+    setIsCalculating(true);
+
+    const reader = new FileReader();
+
+    reader.onload = async (event) => {
+      const arrayBuffer = event.target?.result as ArrayBuffer;
+      let geometry: THREE.BufferGeometry | null = null;
+
+      try {
+        if (extension === 'stl') {
+          const loader = new STLLoader();
+          geometry = loader.parse(arrayBuffer);
+        } else if (extension === 'obj') {
+          const textDecoder = new TextDecoder();
+          const text = textDecoder.decode(arrayBuffer);
+          const objLoader = new OBJLoader();
+          const obj = objLoader.parse(text);
+          const mesh = obj.children.find((child) => (child as THREE.Mesh).isMesh) as THREE.Mesh;
+          if (mesh && mesh.geometry) {
+            geometry = mesh.geometry as THREE.BufferGeometry;
+          } else {
+            throw new Error("OBJ file does not contain valid mesh geometry.");
+          }
+        } else {
+          throw new Error("Unsupported file type.");
+        }
 
         geometry.computeBoundingBox();
         geometry.computeVertexNormals();
 
-        const volume_mm3 = computeMeshVolume(geometry); // in mm³
+        const bbox = geometry.boundingBox!;
+        const width = +(bbox.max.x - bbox.min.x).toFixed(1);
+        const height = +(bbox.max.y - bbox.min.y).toFixed(1);
+        const depth = +(bbox.max.z - bbox.min.z).toFixed(1);
 
-        const density = 1.24; // base density for PLA in g/cm³
+        const volume_mm3 = computeMeshVolume(geometry);
+        const density = 1.24;
         const actualDensity = density * filamentTypes[filament];
-        const filamentUsed = +(volume_mm3 / 1000 * actualDensity).toFixed(1); // convert mm³ → cm³
-
-        const printSpeedFactor = 15; // mm³ per minute
+        const filamentUsed = +(volume_mm3 / 1000 * actualDensity).toFixed(1);
+        const printSpeedFactor = 15;
         const printTimeMin = Math.max(6, volume_mm3 / printSpeedFactor);
         const printTime = printTimeMin < 60
           ? `${Math.round(printTimeMin)}m`
           : `${Math.floor(printTimeMin / 60)}h ${Math.round(printTimeMin % 60)}m`;
-
         const costKES = Math.round((filamentUsed * .25) + (printTimeMin * .3));
 
         setEstimates({
           printTime,
           filamentUsed,
-          costKES
+          costKES,
+          dimensions: { width, height, depth },
         });
-
+      } catch (err) {
+        console.error("Model processing error:", err);
+      } finally {
         setIsCalculating(false);
-      };
+      }
+    };
 
-      reader.readAsArrayBuffer(file);
-    }
+    reader.readAsArrayBuffer(file);
   }, [file, isOpen, filament]);
 
   const computeMeshVolume = (geometry: THREE.BufferGeometry): number => {
@@ -99,7 +126,7 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
       volume += p1.dot(p2.cross(p3)) / 6.0;
     }
 
-    return Math.abs(volume); // mm³
+    return Math.abs(volume);
   };
 
   const formatCurrency = (amount: number) => {
@@ -112,8 +139,11 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+      {/* 🔽 Made modal smaller */}
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden p-0 mt-16" >
+
         <DialogHeader className="p-6 pb-0">
+         
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <Printer className="h-6 w-6 text-primary" />
             3D Print Preview
@@ -125,9 +155,9 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
           )}
         </DialogHeader>
 
-        <div className="flex flex-col lg:flex-row h-[600px]">
-          {/* 3D Viewer */}
-          <div className="flex-1 relative bg-gradient-to-br from-background to-accent/20 min-h-[300px] sm:min-h-[400px] lg:h-[600px]">
+        {/* 🔽 Reduced height from 600px to 500px */}
+        <div className="flex flex-col lg:flex-row h-[500px]">
+          <div className="flex-1 relative bg-gradient-to-br from-background to-accent/20 min-h-[300px] sm:min-h-[400px] lg:h-[500px]">
             <Canvas>
               <PerspectiveCamera makeDefault position={[0, 50, 100]} fov={50} />
               <OrbitControls
@@ -177,11 +207,17 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
             )}
           </div>
 
-          {/* Estimates Panel */}
-          <div className="w-full lg:w-80 p-6 border-l bg-card max-h-[600px] overflow-y-auto">
+          <div className="w-full lg:w-80 p-6 border-l bg-card max-h-[500px] overflow-y-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="mb-2 text-sm text-muted-foreground hover:text-primary w-fit"
+          >
+            ←  Back
+          </Button>
             <h3 className="text-lg font-semibold mb-4">Print Estimates</h3>
 
-            {/* Filament Selection */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Filament Type
@@ -240,6 +276,20 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
                       {formatCurrency(estimates.costKES)}
                     </p>
                   </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                      <Printer className="h-4 w-4 text-primary" />
+                      Model Dimensions
+                    <CardTitle className="text-sm flex items-center gap-2">
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-base font-semibold text-primary">
+                    </p>
+                  </CardContent>
+                      {estimates.dimensions.width} × {estimates.dimensions.height} × {estimates.dimensions.depth} mm
                 </Card>
               </div>
             ) : null}
