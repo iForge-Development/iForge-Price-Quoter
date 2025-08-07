@@ -5,7 +5,6 @@ import { Printer, Zap, Shield, Clock } from 'lucide-react';
 import FileUpload from './FileUpload';
 import PrintPreviewModal from './PrintPreviewModal';
 import iForgeLogo from "@/assets/iForge-logo2.png"; // adjust path as needed
-import DarkModeToggle from '@/components/DarkModeToggle'; // Import the DarkModeToggle component
 
 
 export default function LandingPage() {
@@ -47,7 +46,8 @@ export default function LandingPage() {
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          
+          {/*<div className="flex items-center gap-2">
           <div className="">
             <img
               src={iForgeLogo}
@@ -56,11 +56,11 @@ export default function LandingPage() {
             />
           </div>
           </div>
+  */}
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="text-sm">
               Powered by Bambu Lab
             </Badge>
-            <DarkModeToggle /> {/* Add the DarkModeToggle component here */}
           </div>
         </nav>
       </header>
@@ -76,17 +76,7 @@ export default function LandingPage() {
             <span className="text-primary">Before You Print</span>
           </h2>
 
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            <Badge variant="outline" className="text-lg px-4 py-2">
-              STL Files
-            </Badge>
-            <Badge variant="outline" className="text-lg px-4 py-2">
-              3MF Files
-            </Badge>
-            <Badge variant="outline" className="text-lg px-4 py-2">
-              OBJ Files
-            </Badge>
-          </div>
+          
         </div>
 
         {/* Upload Section */}
@@ -94,7 +84,9 @@ export default function LandingPage() {
           <FileUpload onFileUpload={handleFileUpload} isLoading={isUploading} />
         </div>
 
+        
         {/* Features Section */}
+        {/*
         <div className="mb-20">
           <h3 className="text-3xl font-bold text-center mb-12">Why Choose PrintPreview?</h3>
           
@@ -115,8 +107,10 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
+            */}
 
-        {/* Stats Section */}
+        {/* 
+        Stats Section 
         <div className="bg-gradient-glow rounded-2xl p-8 border">
           <div className="flex justify-center text-center gap-x-32">
             <div>
@@ -129,7 +123,9 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+         */}
       </main>
+       
 
       
 

@@ -11,7 +11,6 @@ interface FileUploadProps {
 
 const ACCEPTED_FILE_TYPES = {
   'model/stl': ['.stl'],
-  'application/x-3mf': ['.3mf'],
   'application/x-wavefront-obj': ['.obj'],
 };
 
@@ -20,7 +19,7 @@ export default function FileUpload({ onFileUpload, isLoading }: FileUploadProps)
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     if (rejectedFiles.length > 0) {
-      setError('Please upload a valid .stl, .3mf, or .obj file');
+      setError('Please upload a valid .stl, or .obj file');
       return;
     }
 
@@ -76,13 +75,12 @@ export default function FileUpload({ onFileUpload, isLoading }: FileUploadProps)
                   {isDragActive ? 'Drop your file here' : 'Upload 3D Model'}
                 </h3>
                 <p className="text-muted-foreground">
-                  Drag & drop your .stl, .3mf, or .obj file here, or click to browse
+                  Drag & drop your .stl, or .obj file here, or click to browse
                 </p>
               </div>
 
               <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
                 <span className="px-2 py-1 bg-accent rounded-md">.STL</span>
-                <span className="px-2 py-1 bg-accent rounded-md">.3MF</span>
                 <span className="px-2 py-1 bg-accent rounded-md">.OBJ</span>
               </div>
 
