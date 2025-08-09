@@ -139,23 +139,19 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* 🔽 Made modal smaller */}
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden p-0 mt-16" >
-
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden p-0 mt-16">
         <DialogHeader className="p-6 pb-0">
-         
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <Printer className="h-6 w-6 text-primary" />
             3D Print Preview
           </DialogTitle>
           {file && (
             <p className="text-muted-foreground">
-              {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+              {file.name} ({(file.size / (10240 * 1024)).toFixed(2)} MB)
             </p>
           )}
         </DialogHeader>
 
-        {/* 🔽 Reduced height from 600px to 500px */}
         <div className="flex flex-col lg:flex-row h-[500px]">
           <div className="flex-1 relative bg-gradient-to-br from-background to-accent/20 min-h-[300px] sm:min-h-[400px] lg:h-[500px]">
             <Canvas>
@@ -208,14 +204,14 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
           </div>
 
           <div className="w-full lg:w-80 p-6 border-l bg-card max-h-[500px] overflow-y-auto">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="mb-2 text-sm text-muted-foreground hover:text-primary w-fit"
-          >
-            ←  Back
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="mb-2 text-sm text-muted-foreground hover:text-primary w-fit"
+            >
+              ←  Back
+            </Button>
             <h3 className="text-lg font-semibold mb-4">Print Estimates</h3>
 
             <div className="mb-4">
@@ -280,16 +276,16 @@ export default function PrintPreviewModal({ isOpen, onClose, file }: PrintPrevie
 
                 <Card>
                   <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
                       <Printer className="h-4 w-4 text-primary" />
                       Model Dimensions
-                    <CardTitle className="text-sm flex items-center gap-2">
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <p className="text-base font-semibold text-primary">
+                    <p className="text-2xl font-bold text-primary">
+                      {estimates.dimensions.width} × {estimates.dimensions.height} × {estimates.dimensions.depth} mm
                     </p>
                   </CardContent>
-                      {estimates.dimensions.width} × {estimates.dimensions.height} × {estimates.dimensions.depth} mm
                 </Card>
               </div>
             ) : null}

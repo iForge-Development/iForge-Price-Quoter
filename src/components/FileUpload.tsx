@@ -33,7 +33,7 @@ export default function FileUpload({ onFileUpload, isLoading }: FileUploadProps)
     onDrop,
     accept: ACCEPTED_FILE_TYPES,
     multiple: false,
-    maxSize: 100 * 1024 * 1024, // 100MB
+    maxSize: 1000 * 1024 * 1024, // 100MB
   });
 
   const dropzoneClassName = cn(
